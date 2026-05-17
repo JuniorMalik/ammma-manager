@@ -6,7 +6,12 @@ import os
 
 # Caminho para o banco de dados na pasta data
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "..", "data", "database.db")
+
+# Se estiver no Railway/Render, usa a pasta do próprio backend para o SQLite para evitar erros de permissão fora da pasta /app
+if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RENDER"):
+    DB_PATH = os.path.join(BASE_DIR, "database.db")
+else:
+    DB_PATH = os.path.join(BASE_DIR, "..", "data", "database.db")
 
 # Suporta banco de dados na nuvem (PostgreSQL, etc.) via variável de ambiente, senão usa SQLite local
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
@@ -14,6 +19,10 @@ if SQLALCHEMY_DATABASE_URL:
     if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
         SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
 else:
+    # Garante que a pasta pai do DB_PATH existe
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
     SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 Base = declarative_base()
