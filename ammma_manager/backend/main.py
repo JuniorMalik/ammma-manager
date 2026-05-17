@@ -170,7 +170,7 @@ def generate_order_pdf(order_id: int, gallery_id: Optional[int] = None, db: Sess
 @app.get("/stats")
 def get_stats(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Pedidos por status
-    total_orders = db.query(Order).count()
+    total_orders = db.query(Order).filter(Order.status != "Cancelado").count()
     pending_orders = db.query(Order).filter(Order.status == "Orçamento").count()
     production_orders = db.query(Order).filter(Order.status.in_(["Aprovado", "Fila", "Imprimindo"])).count()
     finished_orders = db.query(Order).filter(Order.status == "Pronto").all()
