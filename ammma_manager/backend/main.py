@@ -67,7 +67,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Se estiver no Railway/Render, o frontend está na Hostinger, então criamos pastas dummy dentro de /app para evitar RuntimeError ou PermissionError
 if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RENDER"):
     frontend_path = os.path.join(BASE_DIR, "dummy_frontend")
-    logo_path = os.path.join(frontend_path, "logo")
+    logo_path = os.path.join(BASE_DIR, "logo")
 else:
     frontend_path = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend"))
     logo_path = os.path.abspath(os.path.join(frontend_path, "logo"))
