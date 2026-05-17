@@ -2,6 +2,26 @@ import os
 from fpdf import FPDF
 from datetime import timedelta
 
+def clean_text(text):
+    if not text:
+        return ""
+    # Substituir caracteres unicode comuns que não estão no latin-1
+    replacements = {
+        "\u2013": "-", # en-dash
+        "\u2014": "-", # em-dash
+        "\u2018": "'", # left single quote
+        "\u2019": "'", # right single quote
+        "\u201c": '"', # left double quote
+        "\u201d": '"', # right double quote
+        "\u2022": "-", # bullet point
+        "\u20ac": "EUR", # euro symbol
+        "\u2026": "...", # ellipsis
+        "\u00a0": " ", # non-breaking space
+    }
+    for k, v in replacements.items():
+        text = text.replace(k, v)
+    return text.encode("latin-1", "replace").decode("latin-1")
+
 def generate_pdf_budget(order, client, gallery_item, logo_path, upload_path, contacts=None):
     if not contacts:
         contacts = {
@@ -10,6 +30,25 @@ def generate_pdf_budget(order, client, gallery_item, logo_path, upload_path, con
             "owner_phone": "(11) 9 7355 9491",
             "pix_key": "11973559491"
         }
+
+    # Sanitarizar entradas dinâmicas para evitar FPDFUnicodeEncodingException no fallback Linux/Railway
+    client_name = clean_text(order.client_name)
+    project_name = clean_text(order.project_name)
+    
+    material_info = order.notes if order.notes else f"Especificações: {order.weight_g}g"
+    if " | Tempo:" in material_info:
+        material_info = material_info.split(" | Tempo:")[0]
+    elif "Tempo:" in material_info:
+        material_info = material_info.split("Tempo:")[0].strip()
+    material_info = clean_text(material_info)
+    
+    client_email = clean_text(client.email) if client and client.email else "-"
+    client_phone = clean_text(client.phone) if client and client.phone else "-"
+    
+    owner_name = clean_text(contacts.get("owner_name", "Mayara Perez"))
+    owner_role = clean_text(contacts.get("owner_role", "Gerente Comercial"))
+    owner_phone = clean_text(contacts.get("owner_phone", "(11) 9 7355 9491"))
+    pix_key = clean_text(contacts.get("pix_key", "11973559491"))
 
     pdf = FPDF()
     
@@ -79,7 +118,7 @@ def generate_pdf_budget(order, client, gallery_item, logo_path, upload_path, con
     pdf.set_font(FONT_NAME, "B", 11)
     pdf.set_text_color(*PRIMARY_BLUE)
     pdf.cell(95, 10, "DE: AMMMA 3D", ln=0)
-    pdf.cell(95, 10, f"Para: {order.client_name.upper()}", ln=1, align="R")
+    pdf.cell(95, 10, f"Para: {client_name.upper()}", ln=1, align="R")
     
     pdf.set_draw_color(*PRIMARY_BLUE)
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
@@ -99,13 +138,13 @@ def generate_pdf_budget(order, client, gallery_item, logo_path, upload_path, con
     # Detalhes do Cliente (Direita)
     pdf.set_xy(105, curr_y)
     pdf.set_font(FONT_NAME, "B", 9)
-    pdf.cell(95, 5, f"Nome: {order.client_name}", ln=1, align="R")
+    pdf.cell(95, 5, f"Nome: {client_name}", ln=1, align="R")
     pdf.set_font(FONT_NAME, "", 9)
     if client:
         pdf.set_x(105)
-        pdf.cell(95, 5, f"Email: {client.email or '-'}", ln=1, align="R")
+        pdf.cell(95, 5, f"Email: {client_email}", ln=1, align="R")
         pdf.set_x(105)
-        pdf.cell(95, 5, f"Telefone: {client.phone or '-'}", ln=1, align="R")
+        pdf.cell(95, 5, f"Telefone: {client_phone}", ln=1, align="R")
     else:
         pdf.set_x(105)
         pdf.cell(95, 5, "Consumidor Final", ln=1, align="R")
@@ -126,7 +165,7 @@ def generate_pdf_budget(order, client, gallery_item, logo_path, upload_path, con
     # Item Único (Baseado no Pedido)
     pdf.set_text_color(*TEXT_MAIN)
     pdf.set_font(FONT_NAME, "B", 11)
-    pdf.cell(110, 7, f"{order.project_name}", ln=0)
+    pdf.cell(110, 7, f"{project_name}", ln=0)
     pdf.set_font(FONT_NAME, "", 10)
     pdf.cell(20, 7, "1", ln=0, align="C")
     
@@ -140,11 +179,6 @@ def generate_pdf_budget(order, client, gallery_item, logo_path, upload_path, con
     # Detalhes do Material
     pdf.set_font(FONT_NAME, "I", 8)
     pdf.set_text_color(100, 116, 139)
-    material_info = order.notes if order.notes else f"Especificações: {order.weight_g}g"
-    if " | Tempo:" in material_info:
-        material_info = material_info.split(" | Tempo:")[0]
-    elif "Tempo:" in material_info:
-        material_info = material_info.split("Tempo:")[0].strip()
     pdf.multi_cell(110, 5, f"{material_info}")
     
     pdf.ln(10)
@@ -225,7 +259,8 @@ def generate_pdf_budget(order, client, gallery_item, logo_path, upload_path, con
     
     pdf.set_font(FONT_NAME, "", 8)
     pdf.set_x(13)
-    pdf.multi_cell(180, 5, "• Prazo de entrega estimado: 7 a 10 dias úteis após aprovação.\n• Validade deste orçamento: 7 dias corridos.\n• Forma de Pagamento: 50% para confirmação e 50% na entrega.")
+    # Trocado '•' por '-' para evitar FPDFUnicodeEncodingException no fallback Linux/Railway
+    pdf.multi_cell(180, 5, "- Prazo de entrega estimado: 7 a 10 dias úteis após aprovação.\n- Validade deste orçamento: 7 dias corridos.\n- Forma de Pagamento: 50% para confirmação e 50% na entrega.")
     
     # Rodapé com QR Code
     FOOTER_Y = 245
@@ -244,16 +279,16 @@ def generate_pdf_budget(order, client, gallery_item, logo_path, upload_path, con
     pdf.set_xy(TEXT_X, TEXT_Y)
     pdf.set_font(FONT_NAME, "B", 10)
     pdf.set_text_color(*TEXT_MAIN)
-    pdf.cell(60, 5, contacts.get("owner_name", "Mayara Perez"), ln=1)
+    pdf.cell(60, 5, owner_name, ln=1)
     
     pdf.set_font(FONT_NAME, "B", 8)
     pdf.set_text_color(148, 163, 184)
     pdf.set_x(TEXT_X)
-    pdf.cell(60, 4, contacts.get("owner_role", "Gerente Comercial"), ln=1)
+    pdf.cell(60, 4, owner_role, ln=1)
     
     pdf.set_font(FONT_NAME, "", 8)
     pdf.set_x(TEXT_X)
-    pdf.cell(60, 4, contacts.get("owner_phone", "(11) 9 7355 9491"), ln=1)
+    pdf.cell(60, 4, owner_phone, ln=1)
     
     # --- CENTRO: Tabela PIX ---
     due_date = order.created_at + timedelta(days=7)
@@ -262,7 +297,7 @@ def generate_pdf_budget(order, client, gallery_item, logo_path, upload_path, con
     
     labels_values = [
         ("Referencia:", ref_id),
-        ("Pix:", contacts.get("pix_key", "11973559491")),
+        ("Pix:", pix_key),
         ("Pagar até:", due_date_str),
         ("Valor:", valor_fmt)
     ]
