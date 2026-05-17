@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMMMA 3D Manager | Controle Unificado</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
+    
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="logo/icon-192.png">
+    <link rel="icon" type="image/png" href="logo/icon-192.png">
+</head>
+<body>
+    <div class="toast-container" id="toast-container" style="z-index: 9999 !important;"></div>
+    
+    <!-- Custom Modal Structure -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-card">
+            <div id="modal-title" class="modal-header">Confirmação</div>
+            <div id="modal-msg" class="modal-body">Mensagem aqui...</div>
+            <div id="modal-input-container" style="display: none; margin-bottom: 2rem;">
+                <input type="text" id="modal-input" style="width: 100%; padding: 0.8rem; border-radius: 0.5rem; background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-main);">
+            </div>
+            <div class="modal-footer">
+                <button class="btn" style="background: transparent; color: var(--text-muted);" onclick="closeModal(false)">Cancelar</button>
+                <button class="btn btn-primary" id="modal-confirm-btn" onclick="closeModal(true)">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal PDF Gallery Selection -->
+    <div id="pdf-gallery-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card" style="max-width: 600px; width: 90%;">
+            <div class="modal-header">Escolher Foto para o PDF</div>
+            <div class="modal-body">
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Selecione uma imagem da galeria para aparecer no orçamento, ou gere sem imagem.</p>
+                <div id="pdf-gallery-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 1rem; max-height: 300px; overflow-y: auto; margin-bottom: 1rem;">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content: space-between;">
+                <button class="btn" style="background: transparent; color: var(--text-muted);" onclick="closePdfGalleryModal()">Cancelar</button>
+                <div>
+                    <button class="btn" style="background: var(--bg-dark); border: 1px solid var(--border); margin-right: 0.5rem;" onclick="generatePdfWithImage(null)">Gerar Sem Foto</button>
+                    <button class="btn btn-primary" onclick="generatePdfWithSelectedImage()">Gerar Com Foto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <aside id="sidebar">
+        <div class="sidebar-toggle" onclick="toggleSidebar()">◀</div>
+        <div class="logo-container">
+            <img src="logo/logo-vazado.png" alt="AMMMA 3D Logo">
+        </div>
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <nav id="mobile-nav">
+            <ul>
+                <li class="nav-item active" onclick="showTab('dashboard', this)"><i>📊</i> <span>Dashboard</span></li>
+                <li class="nav-item" onclick="showTab('calculator-tab', this)"><i>🧮</i> <span>Calculadora</span></li>
+                <li class="nav-item" onclick="showTab('orders-tab', this)"><i>📋</i> <span>Pedidos</span></li>
+                <li class="nav-item" onclick="showTab('kanban-tab', this)"><i>🎛️</i> <span>Painel de Produção</span></li>
+                <li class="nav-item" onclick="showTab('inventory-tab', this)"><i>📦</i> <span>Inventário</span></li>
+                <li class="nav-item" onclick="showTab('gallery-tab', this)"><i>🖼️</i> <span>Galeria</span></li>
+                <li class="nav-item" onclick="showTab('clients-tab', this)"><i>👥</i> <span>Clientes</span></li>
+                <li class="nav-item" onclick="showTab('finance-tab', this)"><i>💸</i> <span>Financeiro</span></li>
+                <li class="nav-item" onclick="showTab('agenda-tab', this)"><i>📅</i> <span>Agenda</span></li>
+                <li class="nav-item" onclick="showTab('printers-tab', this)"><i>📟</i> <span>Impressoras</span></li>
+                <li class="nav-item" onclick="showTab('coupons-tab', this)"><i>🏷️</i> <span>Cupons</span></li>
+                <li class="nav-item" onclick="showTab('settings', this)"><i>⚙️</i> <span>Configurações</span></li>
+                <li style="margin-top: auto; color: var(--secondary);" onclick="logout()"><i>🚪</i> <span>Sair</span></li>
+            </ul>
+        </nav>
+        <div id="sidebar-footer" style="margin-top: auto; padding-top: 2rem; text-align: center; opacity: 0.3; font-size: 0.7rem; letter-spacing: 1px;">
+            Created By - Wilson Borges
+        </div>
+    </aside>
+
+    <main id="main-content">
+        <header>
+            <h1 id="tab-title">Bem-vindo, Gerente</h1>
+            <p id="tab-subtitle" style="color: var(--text-muted)">Controle de produção e orçamentos automatizados.</p>
+        </header>
+
+        <!-- Aba Dashboard -->
+        <div id="tab-dashboard" class="tab-content">
+            <div class="stats-container">
+                <div class="stat-card primary">
+                    <span class="stat-label">Total de Pedidos</span>
+                    <span class="stat-value" id="stat-total">0</span>
+                    <span class="stat-icon">📊</span>
+                </div>
+                <div class="stat-card secondary">
+                    <span class="stat-label">Orçamentos</span>
+                    <span class="stat-value" id="stat-pending">0</span>
+                    <span class="stat-icon">⏳</span>
+                </div>
+                <div class="stat-card accent">
+                    <span class="stat-label">Em Produção</span>
+                    <span class="stat-value" id="stat-production">0</span>
+                    <span class="stat-icon">⚙️</span>
+                </div>
+                <div class="stat-card success">
+                    <span class="stat-label">Filamento Usado</span>
+                    <span class="stat-value" id="stat-weight">0 kg</span>
+                    <span class="stat-icon">🧵</span>
+                </div>
+            </div>
+
+            <div class="stats-container" style="margin-top: 1rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+                <div class="stat-card primary">
+                    <span class="stat-label">Valor em Inventário</span>
+                    <span class="stat-value" id="stat-inventory-value" style="color: var(--primary);">R$ 0,00</span>
+                    <span class="stat-icon">💰</span>
+                </div>
+                <div class="stat-card secondary">
+                    <span class="stat-label">Custo Bruto (Vendas)</span>
+                    <span class="stat-value" id="stat-gross-cost">R$ 0,00</span>
+                    <span class="stat-icon">📉</span>
+                </div>
+                <div class="stat-card success">
+                    <span class="stat-label">Faturamento Total</span>
+                    <span class="stat-value" id="stat-total-revenue">R$ 0,00</span>
+                    <span class="stat-icon">📈</span>
+                </div>
+                <div class="stat-card accent">
+                    <span class="stat-label">Lucro Líquido</span>
+                    <span class="stat-value" id="stat-net-profit" style="color: var(--success);">R$ 0,00</span>
+                    <span class="stat-icon">💎</span>
+                </div>
+            </div>
+            
+            <div class="stats-container" style="margin-top: 1rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+                <div class="stat-card primary">
+                    <span class="stat-label">Lucro Médio (%)</span>
+                    <span class="stat-value" id="stat-margin">0%</span>
+                    <span class="stat-icon">📈</span>
+                </div>
+                <div class="stat-card secondary">
+                    <span class="stat-label">Tempo de Produção (Médio)</span>
+                    <span class="stat-value" id="stat-lead-time">0h</span>
+                    <span class="stat-icon">🕒</span>
+                </div>
+                <div class="stat-card accent">
+                    <span class="stat-label">Desperdício Total</span>
+                    <span class="stat-value" id="stat-wasted-weight" style="color: var(--secondary);">0 kg</span>
+                    <span class="stat-icon">🗑️</span>
+                </div>
+                <div class="stat-card" style="border-top: 3px solid #f59e0b;">
+                    <span class="stat-label">Custo de Perdas</span>
+                    <span class="stat-value" id="stat-wasted-cost" style="color: #f59e0b;">R$ 0,00</span>
+                    <span class="stat-icon">💸</span>
+                </div>
+            </div>
+
+            <div class="grid" style="margin-top: 2rem; grid-template-columns: 2fr 1fr;">
+                <div class="card">
+                    <h2>📟 Monitor de Impressoras</h2>
+                    <div id="printer-monitor-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                        <p style="color: var(--text-muted); font-size: 0.8rem;">Carregando impressoras...</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>🛠️ Saúde da Oficina</h2>
+                    <div id="maintenance-list" style="margin-top: 1rem;">
+                        <p style="color: var(--success); font-size: 0.8rem;">✅ Todas as máquinas saudáveis.</p>
+                    </div>
+                    <h2 style="margin-top: 2rem;">🔔 Alertas de Estoque</h2>
+                    <div id="low-stock-list" style="margin-top: 0.5rem; max-height: 120px; overflow-y: auto;">
+                        <p style="color: var(--text-muted); font-size: 0.8rem;">Carregando alertas...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid" style="margin-top: 2rem; grid-template-columns: 1fr;">
+                <div class="card">
+                    <h2>📅 Atividades Recentes</h2>
+                    <div id="recent-activities-list" style="margin-top: 1rem; font-size: 0.85rem;">
+                        <p style="color: var(--text-muted);">Carregando atividades...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="grid" style="margin-top: 2rem; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));">
+                <div class="card">
+                    <h2>📈 Evolução Mensal</h2>
+                    <div style="height: 300px;">
+                        <canvas id="salesChart"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <h2>📊 Top Projetos (Vendas)</h2>
+                    <div style="height: 300px;">
+                        <canvas id="topProjectsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top: 2rem;">
+                <h2>🚀 Atalhos Rápidos</h2>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <button class="btn btn-primary" onclick="showTab('calculator-tab', document.querySelector('li[onclick*=\'calculator-tab\']'))">🧮 Nova Calculadora</button>
+                    <button class="btn" style="background: var(--bg-dark); border: 1px solid var(--border);" onclick="showTab('orders-tab', document.querySelector('li[onclick*=\'orders-tab\']'))">📋 Ver Pedidos</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba Calculadora -->
+        <div id="tab-calculator-tab" class="tab-content" style="display: none;">
+            <div class="grid">
+                <div class="card">
+                    <h2>🧮 Calculadora de Custo</h2>
+                    <div class="input-group">
+                        <label>Nome do Cliente</label>
+                        <input type="text" id="client-name" placeholder="Ex: João Silva" value="Consumidor Final" onfocus="this.select()">
+                    </div>
+                    <div class="input-group">
+                        <label>Nome do Projeto</label>
+                        <input type="text" id="project-name" placeholder="Ex: Chaveiro Chinelo" value="Novo Projeto" onfocus="this.select()">
+                    </div>
+                    <div class="input-group">
+                        <label>Gramatura da Peça (g)</label>
+                        <input type="number" id="weight" placeholder="Ex: 320" value="320" onfocus="this.select()">
+                    </div>
+                    <div class="input-group">
+                        <label>Tempo de Impressão (horas)</label>
+                        <input type="number" id="time" placeholder="Ex: 4.5" value="4.5" onfocus="this.select()">
+                    </div>
+                    <div class="input-group">
+                        <label>Mão de Obra (horas)</label>
+                        <input type="number" id="labor" placeholder="Opcional" value="0" onfocus="this.select()">
+                    </div>
+                    <div class="input-group">
+                        <label>Embalagem / Insumos (R$)</label>
+                        <input type="number" id="packaging" placeholder="Ex: 5.00" value="5" onfocus="this.select()">
+                    </div>
+                    <div class="input-group">
+                        <label>Cupom de Desconto</label>
+                        <input type="text" id="coupon-code" placeholder="Ex: AMMMA10" style="text-transform: uppercase;">
+                    </div>
+                    
+                    <button class="btn btn-primary btn-block" onclick="calculate(event)">Calcular Orçamento</button>
+                    <button class="btn btn-block" id="btn-save" style="margin-top: 0.5rem; background: var(--bg-dark); border: 1px solid var(--primary); color: var(--primary); display: none;" onclick="saveOrder()">💾 Salvar no Banco</button>
+
+                    <!-- Painel de Resultados -->
+                    <div id="results-panel" class="results" style="display: none; opacity: 0;">
+                        <div class="result-item">
+                            <span class="label">Custo Estimado:</span>
+                            <span class="value" id="res-cost">R$ 0,00</span>
+                        </div>
+                        <div class="result-item" id="discount-row" style="display: none;">
+                            <span class="label">Desconto Aplicado:</span>
+                            <span class="value" id="res-discount" style="color: var(--secondary);">R$ 0,00</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="label">Preço Sugerido:</span>
+                            <span class="value highlight" id="res-sale">R$ 0,00</span>
+                        </div>
+                    </div>
+
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2>📅 Prazo e Entrega</h2>
+                    <div class="input-group">
+                        <label>Data de Entrega (Opcional)</label>
+                        <input type="text" id="delivery-date" placeholder="Selecione o prazo..." style="width: 100%;">
+                    </div>
+                    <div class="input-group" style="margin-top: 1.5rem;">
+                        <label>Vincular Cliente</label>
+                        <select id="client-select" style="width: 100%; padding: 0.8rem; border-radius: 0.5rem; background: var(--bg-dark); border: 1px solid var(--border); color: white;" onchange="updateClientFromSelect(this)">
+                            <option value="">-- Selecione ou digite acima --</option>
+                        </select>
+                    </div>
+
+                    <h2 style="margin-top: 2rem;">ℹ️ Como funciona?</h2>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">
+                        A calculadora utiliza os parâmetros definidos na aba de <b>Configurações</b> para estimar o custo real da sua impressão.
+                        <br><br>
+                        - <b>Material:</b> Baseado no peso (g) e preço do filamento.<br>
+                        - <b>Energia/Deprec:</b> Baseado no tempo de máquina.<br>
+                        - <b>Mão de Obra:</b> Adiciona o seu tempo de serviço.<br>
+                        - <b>Insumos:</b> Custos fixos de embalagem ou acabamento.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba Pedidos -->
+        <div id="tab-orders-tab" class="tab-content" style="display: none;">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2>📋 Gestão de Pedidos</h2>
+                    <button class="btn btn-ghost" onclick="loadOrders()" style="padding: 0.6rem 1rem;">
+                        <span style="font-size: 1.1rem;">🔄</span> Atualizar Lista
+                    </button>
+                </div>
+
+                <div class="status-tabs" id="status-filter-tabs">
+                    <button class="filter-btn active" data-status="all" onclick="filterOrders('all')">Todos</button>
+                    <button class="filter-btn" data-status="Orçamento" onclick="filterOrders('Orçamento')">Orçamentos</button>
+                    <button class="filter-btn" data-status="Aprovado" onclick="filterOrders('Aprovado')">Aprovados</button>
+                    <button class="filter-btn" data-status="Fila" onclick="filterOrders('Fila')">Na Fila</button>
+                    <button class="filter-btn" data-status="Imprimindo" onclick="filterOrders('Imprimindo')">Imprimindo</button>
+                    <button class="filter-btn" data-status="Pronto" onclick="filterOrders('Pronto')">Concluídos</button>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Projeto</th>
+                            <th>Custo</th>
+                            <th>Preço Venda</th>
+                            <th>Pagamento</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-table-body">
+                        <!-- Preenchido via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Aba Painel Kanban -->
+        <div id="tab-kanban-tab" class="tab-content" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <div>
+                    <h2>🎛️ Painel de Produção</h2>
+                    <p style="color: var(--text-muted); font-size: 0.85rem;">Gerencie seus pedidos em tempo real. Atualização automática: 35s.</p>
+                </div>
+                <button class="btn btn-primary" onclick="loadKanban()">🔄 Atualizar Agora</button>
+            </div>
+
+            <div class="kanban-board">
+                <!-- Coluna Orçamento -->
+                <div class="kanban-column col-budget">
+                    <div class="kanban-column-header">
+                        <span class="column-title">Em Orçamento</span>
+                        <span class="column-count" id="count-budget">0</span>
+                    </div>
+                    <div class="kanban-cards" id="cards-budget"></div>
+                </div>
+
+                <!-- Coluna A Fazer -->
+                <div class="kanban-column col-todo">
+                    <div class="kanban-column-header">
+                        <span class="column-title">A Fazer</span>
+                        <span class="column-count" id="count-todo">0</span>
+                    </div>
+                    <div class="kanban-cards" id="cards-todo"></div>
+                </div>
+
+                <!-- Coluna Fila -->
+                <div class="kanban-column col-queue">
+                    <div class="kanban-column-header">
+                        <span class="column-title">Na Fila</span>
+                        <span class="column-count" id="count-queue">0</span>
+                    </div>
+                    <div class="kanban-cards" id="cards-queue"></div>
+                </div>
+
+                <!-- Coluna Em Produção -->
+                <div class="kanban-column col-production">
+                    <div class="kanban-column-header">
+                        <span class="column-title">Em Produção</span>
+                        <span class="column-count" id="count-production">0</span>
+                    </div>
+                    <div class="kanban-cards" id="cards-production"></div>
+                </div>
+
+                <!-- Coluna Finalizados -->
+                <div class="kanban-column col-done">
+                    <div class="kanban-column-header">
+                        <span class="column-title">Finalizados</span>
+                        <span class="column-count" id="count-done">0</span>
+                    </div>
+                    <div class="kanban-cards" id="cards-done"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba Inventário -->
+        <div id="tab-inventory-tab" class="tab-content" style="display: none;">
+            <div class="grid">
+                <div class="card">
+                    <h2>📦 Novo Material</h2>
+                    <div class="input-group">
+                        <label>Categoria</label>
+                        <select id="inv-category" style="width: 100%; padding: 0.75rem; border-radius: 0.5rem; background: var(--bg-dark); border: 1px solid var(--border); color: white;" onchange="updateInvUnitHint()">
+                            <option value="Filamento">🧵 Filamento</option>
+                            <option value="Embalagem">📦 Embalagem</option>
+                            <option value="Insumos">🛠️ Insumos (Fita, Adesivo...)</option>
+                            <option value="Outros">❓ Outros</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Material / Nome</label>
+                        <input type="text" id="inv-material" placeholder="Ex: PLA, Caixa de Papelão...">
+                    </div>
+                    <div class="input-group" id="inv-color-group">
+                        <label>Cor / Especificação</label>
+                        <input type="text" id="inv-color" placeholder="Ex: Preto, 20x20x10cm...">
+                    </div>
+                    <div class="input-group">
+                        <label id="inv-weight-label">Peso Atual (g)</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="number" id="inv-weight" placeholder="Ex: 1000" style="flex: 2;">
+                            <select id="inv-unit" style="flex: 1; padding: 0.75rem; border-radius: 0.5rem; background: var(--bg-dark); border: 1px solid var(--border); color: white;">
+                                <option value="g">g</option>
+                                <option value="un">un</option>
+                                <option value="m">m</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Marca / Fornecedor</label>
+                        <input type="text" id="inv-brand" placeholder="Ex: 3D Lab">
+                    </div>
+                    <div class="input-group">
+                        <label>Preço Pago (R$)</label>
+                        <input type="number" id="inv-price" placeholder="Ex: 120.00">
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="addInventory()">Adicionar ao Estoque</button>
+                </div>
+
+                <div class="card" style="grid-column: span 2;">
+                    <h2>Estoque Atual</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Item / Categoria</th>
+                                <th>V. Unitário</th>
+                                <th>V. Total</th>
+                                <th>Estoque Atual</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-table-body">
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba Cupons -->
+        <div id="tab-coupons-tab" class="tab-content" style="display: none;">
+            <div class="grid">
+                <div class="card">
+                    <h2>🏷️ Novo Cupom</h2>
+                    <div class="input-group">
+                        <label>Código do Cupom</label>
+                        <input type="text" id="cp-code" placeholder="Ex: AMMMA20" style="text-transform: uppercase;">
+                    </div>
+                    <div class="input-group">
+                        <label>Tipo de Desconto</label>
+                        <select id="cp-type" style="width: 100%; padding: 0.8rem; border-radius: 0.5rem; background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-main);">
+                            <option value="percentage">Porcentagem (%)</option>
+                            <option value="fixed">Valor Fixo (R$)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Valor do Desconto</label>
+                        <input type="number" id="cp-value" placeholder="Ex: 10">
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="createCoupon()">Criar Cupom</button>
+                </div>
+
+                <div class="card" style="grid-column: span 2;">
+                    <h2>Cupons Ativos</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Tipo</th>
+                                <th>Valor</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="coupons-table-body">
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba Configurações -->
+        <div id="tab-settings" class="tab-content" style="display: none;">
+            <div class="grid">
+                <div class="card">
+                    <h2>⚙️ Parâmetros de Cálculo</h2>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem;">Ajuste os valores base para os orçamentos da calculadora.</p>
+                    
+                    <div class="input-group">
+                        <label>Preço do Filamento (R$/kg)</label>
+                        <input type="number" id="cfg-filament" step="0.01" placeholder="Ex: 120.00">
+                    </div>
+                    <div class="input-group">
+                        <label>Hora/Trabalho (Mão de Obra)</label>
+                        <input type="number" id="cfg-work" step="0.01" placeholder="Ex: 15.00">
+                    </div>
+
+                    <h2 style="margin-top: 2rem;">👤 Informações de Contato (PDF)</h2>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem;">Estes dados aparecerão no rodapé dos seus orçamentos.</p>
+                    
+                    <div class="input-group">
+                        <label>Nome do Responsável</label>
+                        <input type="text" id="cfg-owner-name" placeholder="Ex: Mayara Perez">
+                    </div>
+                    <div class="input-group">
+                        <label>Cargo / Função</label>
+                        <input type="text" id="cfg-owner-role" placeholder="Ex: Gerente Comercial">
+                    </div>
+                    <div class="input-group">
+                        <label>Telefone de Contato</label>
+                        <input type="text" id="cfg-owner-phone" placeholder="Ex: (11) 9 7355-9491">
+                    </div>
+                    <div class="input-group">
+                        <label>Chave PIX</label>
+                        <input type="text" id="cfg-pix-key" placeholder="Ex: 11973559491">
+                    </div>
+
+                    <button class="btn btn-primary btn-block" onclick="updateConfigs()" style="margin-top: 1rem;">Salvar Configurações</button>
+                </div>
+
+                <div class="card">
+                    <h2>👥 Gerenciar Usuários</h2>
+                    <div class="input-group">
+                        <label>Novo Usuário</label>
+                        <input type="text" id="new-username" placeholder="Nome do usuário">
+                    </div>
+                    <div class="input-group">
+                        <label>Senha Inicial</label>
+                        <input type="password" id="new-password" placeholder="Senha">
+                    </div>
+                    <div class="input-group">
+                        <label>Cargo (Hierarquia)</label>
+                        <select id="new-role" style="width: 100%; padding: 0.8rem; border-radius: 0.5rem; background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-main); font-size: 1rem;">
+                            <option value="colaborador">Colaborador (Sem acesso às configurações)</option>
+                            <option value="admin">Administrador (Controle Total)</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="createUser()" style="margin-top: 1.5rem;">Adicionar Usuário</button>
+                </div>
+
+                <div class="card" style="grid-column: span 2;">
+                    <h2>Lista de Usuários</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Usuário</th>
+                                <th>Cargo</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- Aba Impressoras -->
+        <div id="tab-printers-tab" class="tab-content" style="display: none;">
+            <div class="grid">
+                <div class="card">
+                    <h2>📟 Nova Impressora</h2>
+                    <div class="input-group">
+                        <label>Nome da Máquina</label>
+                        <input type="text" id="prn-name" placeholder="Ex: Ender 3 S1 #01">
+                    </div>
+                    <div class="input-group">
+                        <label>Modelo</label>
+                        <input type="text" id="prn-model" placeholder="Ex: Creality Ender 3">
+                    </div>
+                    <div class="input-group">
+                        <label>Alerta de Manutenção (horas)</label>
+                        <input type="number" id="prn-maintenance" value="500">
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="addPrinter()">Cadastrar Impressora</button>
+                </div>
+
+                <div class="card" style="grid-column: span 2;">
+                    <h2>Máquinas Ativas</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Impressora</th>
+                                <th>Status</th>
+                                <th>Horas Totais</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="printers-table-body">
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba Galeria -->
+        <div id="tab-gallery-tab" class="tab-content" style="display: none;">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2>🖼️ Galeria de Projetos</h2>
+                    <button class="btn btn-primary" onclick="openGalleryUpload()">➕ Novo Registro</button>
+                </div>
+                <div id="gallery-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.5rem;">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba Clientes -->
+        <div id="tab-clients-tab" class="tab-content" style="display: none;">
+            <div class="grid">
+                <div class="card">
+                    <h2>👥 Novo Cliente</h2>
+                    <div class="input-group">
+                        <label>Nome Completo</label>
+                        <input type="text" id="cl-name" placeholder="Ex: João Silva">
+                    </div>
+                    <div class="input-group">
+                        <label>E-mail</label>
+                        <input type="email" id="cl-email" placeholder="Ex: joao@email.com">
+                    </div>
+                    <div class="input-group">
+                        <label>Telefone / WhatsApp</label>
+                        <input type="text" id="cl-phone" placeholder="Ex: (11) 99999-9999">
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="addClient()">Cadastrar Cliente</button>
+                </div>
+                <div class="card" style="grid-column: span 2;">
+                    <h2>Base de Clientes</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Contato</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clients-table-body">
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba Financeiro (Despesas Fixas) -->
+        <div id="tab-finance-tab" class="tab-content" style="display: none;">
+            <div class="grid">
+                <div class="card">
+                    <h2>💸 Nova Despesa Fixa</h2>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Aluguel, Luz, Internet, Assinaturas...</p>
+                    <div class="input-group">
+                        <label>Descrição</label>
+                        <input type="text" id="ex-desc" placeholder="Ex: Aluguel da Oficina">
+                    </div>
+                    <div class="input-group">
+                        <label>Valor (R$)</label>
+                        <input type="number" id="ex-value" placeholder="Ex: 500.00">
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="addExpense()">Registrar Despesa</button>
+                </div>
+                <div class="card" style="grid-column: span 2;">
+                    <h2>Fluxo de Caixa Mensal</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Data</th>
+                                <th>Valor</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="expenses-table-body">
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba Agenda -->
+        <div id="tab-agenda-tab" class="tab-content" style="display: none;">
+            <div class="card">
+                <h2>📅 Agenda de Produção</h2>
+                <p style="color: var(--text-muted); margin-bottom: 2rem;">Pedidos ordenados por prazo de entrega.</p>
+                <div id="agenda-list" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Upload Galeria -->
+        <div id="gallery-modal" class="modal-overlay">
+            <div class="modal-card">
+                <div class="modal-header">🖼️ Adicionar à Galeria</div>
+                <form id="gallery-form" class="modal-body">
+                    <div class="input-group">
+                        <label>Nome do Projeto</label>
+                        <input type="text" name="project_name" required placeholder="Ex: Estátua Batman">
+                    </div>
+                    <div class="input-group">
+                        <label>Notas / Detalhes</label>
+                        <textarea name="notes" style="width: 100%; height: 80px; padding: 0.8rem; border-radius: 0.5rem; background: var(--bg-dark); border: 1px solid var(--border); color: white;"></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>Foto da Peça</label>
+                        <input type="file" name="file" accept="image/*" required style="padding: 0.5rem; background: var(--bg-dark); border: 1px solid var(--border); width: 100%; border-radius: 0.5rem;">
+                    </div>
+                </form>
+                <div class="modal-footer">
+                    <button class="btn btn-ghost" onclick="closeGalleryModal()">Cancelar</button>
+                    <button class="btn btn-primary" onclick="confirmGalleryUpload()">Fazer Upload</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Atribuição de Impressora -->
+        <div id="printer-assign-modal" class="modal-overlay">
+            <div class="modal-card">
+                <div class="modal-header">📟 Iniciar Produção</div>
+                <div class="modal-body">
+                    <p style="margin-bottom: 1rem;">Selecione a impressora para o projeto <b id="assign-project-name"></b>:</p>
+                    <div class="input-group">
+                        <label>Impressoras Disponíveis</label>
+                        <select id="assign-printer-id" style="width: 100%; padding: 0.8rem; border-radius: 0.5rem; background: var(--bg-dark); border: 1px solid var(--border); color: white;"></select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-ghost" onclick="closePrinterAssignModal()">Cancelar</button>
+                    <button class="btn btn-primary" onclick="confirmPrinterAssign()">🚀 Iniciar Impressão</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Baixa de Estoque -->
+        <div id="inventory-consume-modal" class="modal-overlay">
+            <div class="modal-card">
+                <div class="modal-header">📦 Finalizar e Dar Baixa</div>
+                <div class="modal-body">
+                    <p style="margin-bottom: 1rem;">Selecione o material usado para <b id="consume-project-name"></b>:</p>
+                    <div class="input-group">
+                        <label>Material (Filamento)</label>
+                        <select id="consume-material-id" style="width: 100%; padding: 0.8rem; border-radius: 0.5rem; background: var(--bg-dark); border: 1px solid var(--border); color: white;"></select>
+                    </div>
+                    <div class="input-group">
+                        <label>Peso a descontar (g)</label>
+                        <input type="number" id="consume-weight" placeholder="Ex: 320">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-ghost" onclick="closeConsumeModal()">Cancelar</button>
+                    <button class="btn btn-primary" id="btn-confirm-finish" onclick="confirmFinishOrder()">Finalizar e Dar Baixa</button>
+                </div>
+            </div>
+        </div>
+
+    <!-- Modal de Registro de Falha -->
+    <div id="failure-modal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">🗑️ Registrar Falha</div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-muted);">Informe o material perdido para ajuste de lucro.</p>
+                <div class="input-group">
+                    <label>Peso Perdido (g)</label>
+                    <input type="number" id="fail-weight" placeholder="Ex: 50">
+                </div>
+                <div class="input-group">
+                    <label>Motivo da Falha</label>
+                    <input type="text" id="fail-reason" placeholder="Ex: Descolou da mesa, falta de luz...">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeFailureModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="confirmLogFailure()">Registrar Perda</button>
+            </div>
+        </div>
+    </div>
+    </main>
+
+    
+    <!-- Modal Pagamento -->
+    <div id="payment-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">Registrar Pagamento</div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label>Valor Pago até o Momento (R$)</label>
+                    <input type="number" id="pay-amount" step="0.01" style="width: 100%; padding: 0.8rem; border-radius: 0.5rem; background: var(--bg-dark); border: 1px solid var(--border); color: white;">
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">Valor Total: <span id="pay-total-lbl">R$ 0,00</span></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" style="background: transparent; color: var(--text-muted);" onclick="closePaymentModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="confirmPayment()">Salvar</button>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+    <!-- PWA Install Banner -->
+    <div id="pwa-banner" class="pwa-install-banner">
+        <div class="pwa-info">
+            <img src="logo/logo-vazado.png" alt="AMMMA 3D">
+            <div class="pwa-text">
+                <h4>AMMMA 3D Manager</h4>
+                <p>Instale para acesso rápido</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-ghost" style="padding: 0.5rem 1rem; font-size: 0.8rem;" onclick="hidePwaBanner()">Agora não</button>
+            <button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem;" onclick="installPwa()">Instalar</button>
+        </div>
+    </div>
+</body>
+</html>
