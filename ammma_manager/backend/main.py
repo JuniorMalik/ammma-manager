@@ -348,7 +348,7 @@ def calculate_costs(data: CalcRequest, db: Session = Depends(get_db)):
     # Configurar as definições de preço
     settings = PrintSettings(
         filament_price_kg=configs.get("filament_price_kg", 120.0),
-        electricity_cost_h=0.11, # Pode vir do config também
+        electricity_cost_h=configs.get("electricity_cost_h", 0.11),
         printer_depreciation_h=0.58,
         labor_rate_h=configs.get("hour_work_price", 15.0),
         markup_factor=markup_factor
