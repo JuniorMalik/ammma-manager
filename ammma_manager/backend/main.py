@@ -334,6 +334,7 @@ class CalcRequest(BaseModel):
     consumables: float = 0
     packaging: float = 0
     coupon_code: str = None
+    markup_percent: float = 100.0
 
 @app.post("/calculate")
 def calculate_costs(data: CalcRequest, db: Session = Depends(get_db)):
@@ -341,13 +342,16 @@ def calculate_costs(data: CalcRequest, db: Session = Depends(get_db)):
     configs_list = db.query(Config).all()
     configs = {c.key: (c.value if c.value is not None else c.string_value) for c in configs_list}
     
+    # markup_factor = 1 + (markup_percent / 100)
+    markup_factor = 1.0 + (data.markup_percent / 100.0)
+    
     # Configurar as definições de preço
     settings = PrintSettings(
         filament_price_kg=configs.get("filament_price_kg", 120.0),
         electricity_cost_h=0.11, # Pode vir do config também
         printer_depreciation_h=0.58,
         labor_rate_h=configs.get("hour_work_price", 15.0),
-        markup_factor=2.0 # markup de 2x sobre o custo final
+        markup_factor=markup_factor
     )
     
     calculator = CostCalculator(settings)
