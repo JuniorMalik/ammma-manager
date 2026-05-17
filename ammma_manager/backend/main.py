@@ -62,10 +62,22 @@ app.add_middleware(
 )
 
 # Montar diretórios
-frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend"))
-logo_path = os.path.abspath(os.path.join(frontend_path, "logo"))
-upload_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads"))
-if not os.path.exists(upload_path): os.makedirs(upload_path)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Se estiver no Railway/Render, o frontend está na Hostinger, então criamos pastas dummy dentro de /app para evitar RuntimeError ou PermissionError
+if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RENDER"):
+    frontend_path = os.path.join(BASE_DIR, "dummy_frontend")
+    logo_path = os.path.join(frontend_path, "logo")
+else:
+    frontend_path = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend"))
+    logo_path = os.path.abspath(os.path.join(frontend_path, "logo"))
+
+upload_path = os.path.abspath(os.path.join(BASE_DIR, "uploads"))
+
+# Garante que os diretórios existem antes de montar
+os.makedirs(frontend_path, exist_ok=True)
+os.makedirs(logo_path, exist_ok=True)
+os.makedirs(upload_path, exist_ok=True)
 
 app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 app.mount("/logo", StaticFiles(directory=logo_path), name="logo")
