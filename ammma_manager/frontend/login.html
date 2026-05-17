@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | AMMMA 3D Manager</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- PWA Settings -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="/logo/icon-192.png">
+    <link rel="icon" type="image/png" href="/logo/icon-192.png">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+        }
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            animation: fadeIn 0.8s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .logo-login {
+            width: 200px;
+            margin: 0 auto 2rem;
+            display: block;
+            filter: drop-shadow(0 0 10px var(--primary));
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card card">
+        <img src="/logo/logo-vazado.png" alt="AMMMA 3D" class="logo-login">
+        <h2 style="text-align: center; margin-bottom: 2rem;">Gestão</h2>
+        
+        <div class="input-group">
+            <label>Usuário</label>
+            <input type="text" id="username" placeholder="Login">
+        </div>
+        
+        <div class="input-group" style="margin-bottom: 2rem;">
+            <label>Senha</label>
+            <input type="password" id="password" placeholder="••••••••">
+        </div>
+        
+        <div style="display: flex; justify-content: center;">
+            <button class="btn btn-primary" onclick="handleLogin()">Entrar no Sistema</button>
+        </div>
+        
+        <p id="error-msg" style="color: var(--secondary); font-size: 0.875rem; text-align: center; margin-top: 1rem; display: none;">
+            Usuário ou senha inválidos.
+        </p>
+
+        <div style="margin-top: 2rem; text-align: center; opacity: 0.3; font-size: 0.75rem; letter-spacing: 1px;">
+            Created By - Wilson Borges
+        </div>
+    </div>
+
+    <script>
+        // Se já tiver token, vai direto pro dashboard
+        if (localStorage.getItem('ammma_token')) {
+            window.location.href = '/';
+        }
+
+        // --- CONFIGURAÇÃO DE HOSTING ---
+        // Se o backend estiver em outro servidor (ex: Railway), coloque a URL aqui.
+        const API_BASE_URL = '';
+
+        async function handleLogin() {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            const errorMsg = document.getElementById('error-msg');
+
+            try {
+                const response = await fetch(API_BASE_URL + '/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('ammma_token', data.access_token);
+                    localStorage.setItem('ammma_role', data.role);
+                    localStorage.setItem('ammma_user', user);
+                    window.location.href = '/';
+                } else {
+                    errorMsg.style.display = 'block';
+                }
+            } catch (error) {
+                alert('Erro de conexão com o servidor.');
+            }
+        }
+
+        // Enter key support
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
+
+        // Registrar Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker Registrado!', reg))
+                    .catch(err => console.error('Erro no Service Worker', err));
+            });
+        }
+
+        // --- LÓGICA DE INSTALAÇÃO PWA ---
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const banner = document.getElementById('pwa-banner');
+            if (banner) banner.style.display = 'flex';
+        });
+
+        async function installPwa() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+            hidePwaBanner();
+        }
+
+        function hidePwaBanner() {
+            const banner = document.getElementById('pwa-banner');
+            if (banner) banner.style.display = 'none';
+        }
+    </script>
+
+    <!-- PWA Install Banner -->
+    <div id="pwa-banner" class="pwa-install-banner">
+        <div class="pwa-info">
+            <img src="/logo/icon-192.png" alt="AMMMA 3D">
+            <div class="pwa-text">
+                <h4>AMMMA 3D Manager</h4>
+                <p>Instale para acesso rápido</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-ghost" style="padding: 0.5rem 1rem; font-size: 0.8rem;" onclick="hidePwaBanner()">Agora não</button>
+            <button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem;" onclick="installPwa()">Instalar</button>
+        </div>
+    </div>
+</body>
+</html>
