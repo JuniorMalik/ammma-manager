@@ -667,6 +667,12 @@ def update_order_status(order_id: int, data: dict, db: Session = Depends(get_db)
                 if printer: 
                     printer.status = "Disponível"
                     printer.total_hours += order.time_hours
+        elif new_status == "Cancelado":
+            # Liberar impressora se cancelado
+            if order.printer_id:
+                printer = db.query(Printer).filter(Printer.id == order.printer_id).first()
+                if printer: 
+                    printer.status = "Disponível"
         
         # Nota: A baixa de estoque é feita manualmente pelo frontend via /inventory/ID
         # para garantir precisão do material utilizado.
