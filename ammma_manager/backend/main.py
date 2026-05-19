@@ -1,4 +1,4 @@
-from database import init_db, get_db, Order, Client, User, Config, Inventory, Discount, Printer, FailureLog, ProjectGallery, FixedExpense
+from database import init_db, get_db, Order, Client, User, Config, Inventory, Discount, Printer, FailureLog, ProjectGallery, FixedExpense, CatalogItem
 from auth import get_password_hash, verify_password, create_access_token, SECRET_KEY, ALGORITHM
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
@@ -779,6 +779,71 @@ def delete_discount(discount_id: int, db: Session = Depends(get_db), current_use
     db.delete(coupon)
     db.commit()
     return {"message": "Cupom removido com sucesso."}
+
+# --- CATÁLOGO DE PRODUTOS ---
+
+@app.get("/catalog")
+def list_catalog(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return db.query(CatalogItem).order_by(desc(CatalogItem.created_at)).all()
+
+@app.post("/catalog")
+async def create_catalog_item(
+    name: str = Form(...),
+    price: float = Form(...),
+    notes: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    image_path = None
+    if file:
+        filename = f"cat_{datetime.utcnow().timestamp()}_{file.filename}"
+        file_path = os.path.join(upload_path, filename)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        image_path = f"/uploads/{filename}"
+    
+    new_item = CatalogItem(
+        name=name,
+        price=price,
+        notes=notes,
+        image_path=image_path
+    )
+    db.add(new_item)
+    db.commit()
+    db.refresh(new_item)
+    return new_item
+
+@app.patch("/catalog/{item_id}")
+def update_catalog_item(item_id: int, data: dict, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    item = db.query(CatalogItem).filter(CatalogItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item não encontrado no catálogo.")
+    
+    if "price" in data:
+        item.price = data["price"]
+    if "name" in data:
+        item.name = data["name"]
+        
+    db.commit()
+    db.refresh(item)
+    return item
+
+@app.delete("/catalog/{item_id}")
+def delete_catalog_item(item_id: int, db: Session = Depends(get_db), current_user: User = Depends(check_admin)):
+    item = db.query(CatalogItem).filter(CatalogItem.id == item_id).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Item não encontrado no catálogo.")
+    
+    if item.image_path:
+        filename = os.path.basename(item.image_path)
+        file_path = os.path.join(upload_path, filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            
+    db.delete(item)
+    db.commit()
+    return {"message": "Item removido do catálogo com sucesso."}
 
 if __name__ == "__main__":
     import uvicorn
