@@ -134,6 +134,15 @@ class Discount(Base):
     is_active = Column(Integer, default=1)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class CatalogItem(Base):
+    __tablename__ = "catalog"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    price = Column(Float)
+    image_path = Column(String)
+    notes = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 from sqlalchemy import create_engine
 
 connect_args = {}
