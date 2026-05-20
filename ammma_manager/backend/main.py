@@ -56,7 +56,7 @@ app = FastAPI(title="AMMMA 3D Manager API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
