@@ -122,19 +122,27 @@ def check_admin(user: User = Depends(get_current_user)):
 # Rota para servir o index.html na raiz
 @app.get("/")
 def read_index():
-    return FileResponse(os.path.join(frontend_path, "index.html"))
+    file_path = os.path.join(frontend_path, "index.html")
+    if os.path.exists(file_path): return FileResponse(file_path)
+    return {"status": "Backend AMMMA 3D API is running"}
 
 @app.get("/login")
 def read_login():
-    return FileResponse(os.path.join(frontend_path, "login.html"))
+    file_path = os.path.join(frontend_path, "login.html")
+    if os.path.exists(file_path): return FileResponse(file_path)
+    return {"status": "Backend AMMMA 3D API is running"}
 
 @app.get("/sw.js")
 def read_sw():
-    return FileResponse(os.path.join(frontend_path, "sw.js"))
+    file_path = os.path.join(frontend_path, "sw.js")
+    if os.path.exists(file_path): return FileResponse(file_path)
+    return {"error": "not found"}
 
 @app.get("/manifest.json")
 def read_manifest():
-    return FileResponse(os.path.join(frontend_path, "manifest.json"))
+    file_path = os.path.join(frontend_path, "manifest.json")
+    if os.path.exists(file_path): return FileResponse(file_path)
+    return {"error": "not found"}
 
 # --- GERADOR DE PDF ---
 
