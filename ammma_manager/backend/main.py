@@ -235,17 +235,18 @@ def get_stats(db: Session = Depends(get_db), current_user: User = Depends(get_cu
         lead_times = [(o.finished_at - o.created_at).total_seconds() / 3600 for o in finished_with_dates]
         avg_lead_time = sum(lead_times) / len(lead_times)
 
-    # Evolução de Vendas (Últimos 6 meses)
-    sales_evo_query = db.query(
-        func.strftime('%Y-%m', Order.created_at).label('month'),
-        func.sum(Order.suggested_price).label('revenue'),
-        func.sum(Order.final_cost).label('cost')
-    ).filter(Order.status == "Pronto")\
-     .group_by('month')\
-     .order_by('month')\
-     .limit(6).all()
+       # Evolução de Vendas (Últimos 6 meses) - compatível com SQLite e PostgreSQL
+    finished_for_evo = db.query(Order).filter(Order.status == "Pronto", Order.created_at.isnot(None)).all()
+    sales_by_month = {}
+    for o in finished_for_evo:
+        month_key = o.created_at.strftime('%Y-%m')
+        if month_key not in sales_by_month:
+            sales_by_month[month_key] = {"revenue": 0.0, "cost": 0.0}
+        sales_by_month[month_key]["revenue"] += o.suggested_price or 0
+        sales_by_month[month_key]["cost"] += o.final_cost or 0
     
-    sales_evolution = [{"month": s[0], "revenue": round(s[1], 2), "cost": round(s[2], 2)} for s in sales_evo_query]
+    sorted_months = sorted(sales_by_month.keys())[-6:]
+    sales_evolution = [{"month": m, "revenue": round(sales_by_month[m]["revenue"], 2), "cost": round(sales_by_month[m]["cost"], 2)} for m in sorted_months]
 
     # Status das Impressoras
     printers = db.query(Printer).all()
